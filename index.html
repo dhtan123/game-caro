@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Caro Online</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #f0f2f5; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 10px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
+        h1 { color: #1a73e8; margin-bottom: 10px; }
+        .status { font-size: 1.1rem; margin: 10px 0; font-weight: bold; color: #333; }
+        .board { display: grid; grid-template-columns: repeat(15, 1fr); gap: 1px; background: #ccc; border: 2px solid #333; margin: 15px auto; aspect-ratio: 1; width: 100%; max-width: 450px; }
+        .cell { background: #fff8dc; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: calc(100vw / 25); cursor: pointer; user-select: none; }
+        @media (min-width: 500px) { .cell { font-size: 18px; } }
+        .cell.x { color: #d93025; }
+        .cell.o { color: #1a73e8; }
+        .btn { background: #1a73e8; color: white; border: none; padding: 10px 20px; font-size: 1rem; border-radius: 6px; cursor: pointer; margin: 5px; transition: 0.2s; }
+        .btn:hover { background: #1557b0; }
+        .btn-secondary { background: #5f6368; }
+        .btn-secondary:hover { background: #3c4043; }
+        .guide { margin-top: 15px; text-align: left; background: #e8f0fe; padding: 10px 15px; border-radius: 8px; font-size: 0.9rem; color: #1967d2; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen" class="card">
+        <h1>CARO ONLINE</h1>
+        <p style="margin: 15px 0; color: #555;">Game Caro 15x15 dành cho 2 người chơi trên cùng một thiết bị.</p>
+        <button class="btn" onclick="startGame()">Bắt Đầu Chơi</button>
+        <div class="guide">
+            <strong>Hướng dẫn:</strong>
+            <ul style="margin-left: 20px; margin-top: 5px;">
+                <li>X đi trước, O đi sau.</li>
+                <li>Lần lượt bấm vào ô trống để đặt quân.</li>
+                <li>Tạo thành 5 quân liên tiếp (Ngang, Dọc, Chéo) để chiến thắng!</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="game-screen" class="card hidden">
+        <h1>CARO ONLINE</h1>
+        <div id="status" class="status">Lượt đi: <span style="color:#d93025;">X</span></div>
+        <div id="board" class="board"></div>
+        <button class="btn" onclick="resetGame()">Chơi Lại</button>
+        <button class="btn btn-secondary" onclick="showStartScreen()">Thoát</button>
+    </div>
+
+    <script>
+        const SIZE = 15;
+        let board = [];
+        let currentPlayer = 'X';
+        let isGameActive = false;
+
+        function startGame() {
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            resetGame();
+        }
+
+        function showStartScreen() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+        }
+
+        function resetGame() {
+            board = Array(SIZE).fill(null).map(() => Array(SIZE).fill(''));
+            currentPlayer = 'X';
+            isGameActive = true;
+            updateStatus();
+            renderBoard();
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = `cell ${board[r][c].toLowerCase()}`;
+                    cell.innerText = board[r][c];
+                    cell.onclick = () => handleClick(r, c);
+                    boardEl.appendChild(cell);
+                }
+            }
+        }
+
+        function handleClick(r, c) {
+            if (!isGameActive || board[r][c] !== '') return;
+            board[r][c] = currentPlayer;
+            renderBoard();
+
+            if (checkWin(r, c)) {
+                document.getElementById('status').innerText = `Người chơi ${currentPlayer} THẮNG! 🎉`;
+                isGameActive = false;
+                return;
+            }
+
+            if (isFull()) {
+                document.getElementById('status').innerText = 'HÒA CỜ! 🤝';
+                isGameActive = false;
+                return;
+            }
+
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            updateStatus();
+        }
+
+        function updateStatus() {
+            const color = currentPlayer === 'X' ? '#d93025' : '#1a73e8';
+            document.getElementById('status').innerHTML = `Lượt đi: <span style="color:${color}">${currentPlayer}</span>`;
+        }
+
+        function isFull() {
+            return board.every(row => row.every(cell => cell !== ''));
+        }
+
+        function checkWin(r, c) {
+            const symbol = board[r][c];
+            const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+            for (let [dr, dc] of dirs) {
+                let count = 1;
+                let nr = r + dr, nc = c + dc;
+                while (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && board[nr][nc] === symbol) {
+                    count++; nr += dr; nc += dc;
+                }
+                nr = r - dr; nc = c - dc;
+                while (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && board[nr][nc] === symbol) {
+                    count++; nr -= dr; nc -= dc;
+                }
+                if (count >= 5) return true;
+            }
+            return false;
+        }
+    </script>
+</body>
+</html>
